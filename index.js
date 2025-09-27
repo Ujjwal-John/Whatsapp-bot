@@ -37,8 +37,8 @@ app.post("/register", async (req, res) => {
     const { name, phone } = req.body;
 
     await client.messages.create({
-      from: "whatsapp",
-      to: `whatsapp:${phone}`,
+      from: "whatsapp:+14155238886", // ✅ Your Twilio sandbox WhatsApp number
+      to: `whatsapp:${phone}`,        // ✅ User's WhatsApp number, e.g., +91xxxxxxxxxx
       body: `✅ Hi ${name}, thanks for registering! Please send the screenshot for verification.`
     });
 
@@ -48,6 +48,7 @@ app.post("/register", async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
 
 // Incoming WhatsApp webhook
 app.post("/incoming", (req, res) => {
