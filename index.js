@@ -1,13 +1,23 @@
 const express = require("express");
 const twilio = require("twilio");
-require('dotenv').config();
+require("dotenv").config();
+const cors = require("cors");
 
 const app = express();
 
+// ✅ Allow your production domain + localhost for dev
+app.use(cors({
+  origin: "https://colabesports.in",
+  methods: ["GET", "POST", "OPTIONS"], // include OPTIONS for preflight
+  allowedHeaders: ["Content-Type"]
+}));
+
 // Parse JSON for /register
 app.use("/register", express.json());
-// Parse URL-encoded data for /incoming webhook
+
+// Parse both URL-encoded and JSON data for /incoming webhook
 app.use("/incoming", express.urlencoded({ extended: false }));
+app.use("/incoming", express.json());
 
 // Store incoming messages
 let userMessages = [];
@@ -27,7 +37,7 @@ app.post("/register", async (req, res) => {
     const { name, phone } = req.body;
 
     await client.messages.create({
-      from: "whatsapp:+14155238886",
+      from: "whatsapp",
       to: `whatsapp:${phone}`,
       body: `✅ Hi ${name}, thanks for registering! Please send the screenshot for verification.`
     });
@@ -41,11 +51,20 @@ app.post("/register", async (req, res) => {
 
 // Incoming WhatsApp webhook
 app.post("/incoming", (req, res) => {
-  const from = req.body.From;
-  const message = req.body.Body;
+  const from = req.body.From;       // Sender number
+  const text = req.body.Body || ""; // Text message
+  const numMedia = parseInt(req.body.NumMedia || "0");
 
-  userMessages.push({ from, message, receivedAt: new Date() });
-  console.log("Incoming WhatsApp message:", from, message);
+  let media = [];
+  for (let i = 0; i < numMedia; i++) {
+    media.push({
+      url: req.body[`MediaUrl${i}`],
+      contentType: req.body[`MediaContentType${i}`]
+    });
+  }
+
+  userMessages.push({ from, text, media, receivedAt: new Date() });
+  console.log("Incoming WhatsApp message:", { from, text, media });
 
   res.set("Content-Type", "text/xml");
   res.send("<Response></Response>");
